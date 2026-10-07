@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Home Energy Advisor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --surface2: #f7f9fc;
+      --border: #dde3ec;
+      --text: #1a202c;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --accent-light: #eff6ff;
+      --green: #16a34a;
+      --green-light: #f0fdf4;
+      --amber: #d97706;
+      --amber-light: #fffbeb;
+      --red: #dc2626;
+      --red-light: #fef2f2;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+
+    body {
+      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0 0 60px;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 100%);
+      color: #fff;
+      padding: 36px 24px 28px;
+      text-align: center;
+    }
+    header .icon { font-size: 2.8rem; margin-bottom: 8px; }
+    header h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: -0.3px; }
+    header p { margin-top: 6px; opacity: 0.85; font-size: 0.95rem; }
+
+    /* ── Layout ── */
+    .container { max-width: 900px; margin: 0 auto; padding: 0 16px; }
+
+    /* ── Section card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-top: 24px;
+    }
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+    }
+    .card-title .badge {
+      background: var(--accent);
+      color: #fff;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      font-weight: 600;
+    }
+
+    /* ── Settings strip ── */
+    .settings-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media(max-width:520px){ .settings-row { grid-template-columns: 1fr; } }
+
+    .field label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 6px;
+    }
+    .field input, .field select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      background: var(--surface2);
+      color: var(--text);
+      transition: border-color .15s;
+    }
+    .field input:focus, .field select:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: #fff;
+    }
+
+    /* ── Appliance form ── */
+    .appliance-form {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+    @media(max-width:680px){
+      .appliance-form { grid-template-columns: 1fr 1fr; }
+      .appliance-form .btn-add { grid-column: span 2; }
+    }
+
+    .btn {
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:hover { opacity: 0.88; }
+
+    .btn-add {
+      background: var(--accent);
+      color: #fff;
+      padding: 9px 18px;
+      font-size: 0.92rem;
+      white-space: nowrap;
+    }
+
+    .btn-preset {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      border-radius: 6px;
+      margin: 4px 4px 0 0;
+    }
+    .btn-preset:hover { border-color: var(--accent); color: var(--accent); }
+
+    .presets-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin: 14px 0 6px;
+    }
+
+    /* ── Appliance table ── */
+    .appliance-list { margin-top: 20px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--muted);
+      border-bottom: 2px solid var(--border);
+    }
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface2); }
+
+    .td-name { font-weight: 600; }
+    .td-kwh { font-variant-numeric: tabular-nums; }
+    .td-cost { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+    .btn-remove {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      border-radius: 6px;
+    }
+    .btn-remove:hover { border-color: var(--red); color: var(--red); background: var(--red-light); }
+
+    .empty-state {
+      text-align: center;
+      color: var(--muted);
+      padding: 32px 16px;
+      font-size: 0.92rem;
+    }
+    .empty-state .big { font-size: 2.5rem; margin-bottom: 8px; }
+
+    /* ── Summary cards ── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    @media(max-width:560px){ .summary-grid { grid-template-columns: 1fr; } }
+
+    .summary-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 16px;
+      text-align: center;
+    }
+    .summary-item .s-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .summary-item .s-value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+    .summary-item .s-sub {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    /* ── Usage bar ── */
+    .usage-chart { margin-top: 20px; }
+    .usage-row { margin-bottom: 10px; }
+    .usage-row-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+    .usage-row-name { font-weight: 600; }
+    .usage-row-val { color: var(--muted); font-variant-numeric: tabular-nums; }
+    .bar-track {
+      background: var(--border);
+      border-radius: 999px;
+      height: 8px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width .4s ease;
+    }
+
+    /* ── Tips ── */
+    .tips-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media(max-width:560px){ .tips-grid { grid-template-columns: 1fr; } }
+
+    .tip-item {
+      background: var(--green-light);
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .tip-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 1px; }
+    .tip-title { font-weight: 700; font-size: 0.88rem; margin-bottom: 3px; }
+    .tip-body { font-size: 0.82rem; color: #166534; line-height: 1.5; }
+
+    .alert-item {
+      background: var(--amber-light);
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .alert-item .tip-body { color: #92400e; }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 40px;
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="icon">⚡</div>
+  <h1>Smart Home Energy Advisor</h1>
+  <p>Track your appliances, estimate costs, and find ways to save energy.</p>
+</header>
+
+<div class="container">
+
+  <!-- Settings -->
+  <div class="card">
+    <div class="card-title">⚙️ Electricity Settings</div>
+    <div class="settings-row">
+      <div class="field">
+        <label>Electricity Rate (¢ per kWh)</label>
+        <input type="number" id="rate" value="12" min="1" max="100" step="0.1" />
+      </div>
+      <div class="field">
+        <label>Currency Symbol</label>
+        <select id="currency">
+          <option value="$">$ USD</option>
+          <option value="€">€ EUR</option>
+          <option value="£">£ GBP</option>
+          <option value="₹">₹ INR</option>
+          <option value="¥">¥ JPY</option>
+          <option value="A$">A$ AUD</option>
+          <option value="C$">C$ CAD</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Appliance -->
+  <div class="card">
+    <div class="card-title">➕ Add Appliance</div>
+
+    <div class="appliance-form">
+      <div class="field">
+        <label>Appliance Name</label>
+        <input type="text" id="name" placeholder="e.g. Refrigerator" />
+      </div>
+      <div class="field">
+        <label>Wattage (W)</label>
+        <input type="number" id="wattage" placeholder="150" min="1" />
+      </div>
+      <div class="field">
+        <label>Hours / Day</label>
+        <input type="number" id="hours" placeholder="8" min="0.1" max="24" step="0.5" />
+      </div>
+      <div class="field">
+        <label>Days / Week</label>
+        <input type="number" id="days" placeholder="7" min="1" max="7" />
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn btn-add" onclick="addAppliance()">Add</button>
+      </div>
+    </div>
+
+    <div class="presets-label">Quick add presets</div>
+    <div id="presets-row"></div>
+  </div>
+
+  <!-- Appliance List -->
+  <div class="card">
+    <div class="card-title">🏠 My Appliances <span class="badge" id="count-badge">0</span></div>
+    <div class="appliance-list" id="appliance-list">
+      <div class="empty-state">
+        <div class="big">💡</div>
+        Add your first appliance above to get started.
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div id="results-section" style="display:none">
+
+    <div class="card">
+      <div class="card-title">📊 Monthly Cost Summary</div>
+      <div class="summary-grid">
+        <div class="summary-item">
+          <div class="s-label">Monthly Usage</div>
+          <div class="s-value" id="sum-kwh">—</div>
+          <div class="s-sub">kilowatt-hours</div>
+        </div>
+        <div class="summary-item">
+          <div class="s-label">Monthly Cost</div>
+          <div class="s-value" id="sum-cost">—</div>
+          <div class="s-sub">estimated</div>
+        </div>
+        <div class="summary-item">
+          <div class="s-label">Annual Cost</div>
+          <div class="s-value" id="sum-annual">—</div>
+          <div class="s-sub">projected</div>
+        </div>
+      </div>
+
+      <!-- bar chart -->
+      <div class="usage-chart">
+        <div style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:12px;">Usage Breakdown</div>
+        <div id="bar-chart"></div>
+      </div>
+    </div>
+
+    <!-- Tips -->
+    <div class="card">
+      <div class="card-title">💡 Energy Saving Tips</div>
+      <div class="tips-grid" id="tips-grid"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<footer>Smart Home Energy Advisor — estimates only. Actual costs vary by provider.</footer>
+
+<script>
+  const PRESETS = [
+    { name: "Refrigerator",     wattage: 150,  hours: 24, days: 7 },
+    { name: "Air Conditioner",  wattage: 1500, hours: 8,  days: 5 },
+    { name: "Washing Machine",  wattage: 500,  hours: 1,  days: 4 },
+    { name: "LED TV",           wattage: 80,   hours: 5,  days: 7 },
+    { name: "Laptop",           wattage: 60,   hours: 8,  days: 5 },
+    { name: "LED Bulb (×5)",    wattage: 50,   hours: 6,  days: 7 },
+    { name: "Microwave",        wattage: 1200, hours: 0.5,days: 7 },
+    { name: "Electric Heater",  wattage: 2000, hours: 4,  days: 5 },
+    { name: "Dishwasher",       wattage: 1800, hours: 1,  days: 5 },
+    { name: "Phone Charger",    wattage: 10,   hours: 3,  days: 7 },
+    { name: "Desktop PC",       wattage: 300,  hours: 8,  days: 5 },
+    { name: "Electric Dryer",   wattage: 5000, hours: 1,  days: 3 },
+  ];
+
+  const BAR_COLORS = [
+    "#2563eb","#0ea5e9","#8b5cf6","#ec4899",
+    "#f59e0b","#10b981","#ef4444","#f97316",
+    "#14b8a6","#6366f1","#84cc16","#64748b"
+  ];
+
+  let appliances = [];
+
+  // Build preset buttons
+  const presetsRow = document.getElementById("presets-row");
+  PRESETS.forEach(p => {
+    const btn = document.createElement("button");
+    btn.className = "btn btn-preset";
+    btn.textContent = p.name;
+    btn.onclick = () => {
+      document.getElementById("name").value    = p.name;
+      document.getElementById("wattage").value = p.wattage;
+      document.getElementById("hours").value   = p.hours;
+      document.getElementById("days").value    = p.days;
+    };
+    presetsRow.appendChild(btn);
+  });
+
+  function getRate()     { return parseFloat(document.getElementById("rate").value) || 12; }
+  function getCurrency() { return document.getElementById("currency").value; }
+
+  function monthlyKWh(wattage, hours, days) {
+    // (W / 1000) * hours_per_day * (days_per_week / 7) * 30
+    return (wattage / 1000) * hours * (days / 7) * 30;
+  }
+
+  function addAppliance() {
+    const name    = document.getElementById("name").value.trim();
+    const wattage = parseFloat(document.getElementById("wattage").value);
+    const hours   = parseFloat(document.getElementById("hours").value);
+    const days    = parseFloat(document.getElementById("days").value);
+
+    if (!name)              { shake("name");    return; }
+    if (!wattage || wattage <= 0) { shake("wattage"); return; }
+    if (!hours   || hours <= 0)   { shake("hours");   return; }
+    if (!days    || days < 1)     { shake("days");    return; }
+
+    appliances.push({ id: Date.now(), name, wattage, hours, days });
+
+    // clear form
+    document.getElementById("name").value    = "";
+    document.getElementById("wattage").value = "";
+    document.getElementById("hours").value   = "";
+    document.getElementById("days").value    = "";
+
+    render();
+  }
+
+  function removeAppliance(id) {
+    appliances = appliances.filter(a => a.id !== id);
+    render();
+  }
+
+  function shake(fieldId) {
+    const el = document.getElementById(fieldId);
+    el.style.borderColor = "var(--red)";
+    el.focus();
+    setTimeout(() => { el.style.borderColor = ""; }, 1200);
+  }
+
+  function fmt(val, sym) {
+    if (val >= 1000) return sym + val.toLocaleString("en", {maximumFractionDigits:0});
+    return sym + val.toFixed(2);
+  }
+
+  function render() {
+    const rate = getRate() / 100; // convert cents to dollars
+    const sym  = getCurrency();
+
+    // Badge
+    document.getElementById("count-badge").textContent = appliances.length;
+
+    // List
+    const listEl = document.getElementById("appliance-list");
+
+    if (appliances.length === 0) {
+      listEl.innerHTML = `<div class="empty-state"><div class="big">💡</div>Add your first appliance above to get started.</div>`;
+      document.getElementById("results-section").style.display = "none";
+      return;
+    }
+
+    const rows = appliances.map((a, i) => {
+      const kwh  = monthlyKWh(a.wattage, a.hours, a.days);
+      const cost = kwh * rate;
+      return `
+        <tr>
+          <td class="td-name">${escHtml(a.name)}</td>
+          <td>${a.wattage} W</td>
+          <td>${a.hours}h / day</td>
+          <td>${a.days} day${a.days !== 1 ? "s" : ""}/wk</td>
+          <td class="td-kwh">${kwh.toFixed(1)} kWh</td>
+          <td class="td-cost">${fmt(cost, sym)}</td>
+          <td><button class="btn btn-remove" onclick="removeAppliance(${a.id})">✕ Remove</button></td>
+        </tr>`;
+    }).join("");
+
+    listEl.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Appliance</th><th>Power</th><th>Daily Use</th>
+            <th>Weekly Use</th><th>Monthly kWh</th><th>Monthly Cost</th><th></th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+
+    // Summary
+    const totalKwh  = appliances.reduce((s, a) => s + monthlyKWh(a.wattage, a.hours, a.days), 0);
+    const totalCost = totalKwh * rate;
+    const annual    = totalCost * 12;
+
+    document.getElementById("sum-kwh").textContent    = totalKwh.toFixed(1);
+    document.getElementById("sum-cost").textContent   = fmt(totalCost, sym);
+    document.getElementById("sum-annual").textContent = fmt(annual, sym);
+
+    // Bar chart
+    const maxKwh = Math.max(...appliances.map(a => monthlyKWh(a.wattage, a.hours, a.days)));
+    const barHtml = appliances
+      .map((a, i) => {
+        const kwh  = monthlyKWh(a.wattage, a.hours, a.days);
+        const pct  = totalKwh > 0 ? (kwh / totalKwh * 100).toFixed(1) : 0;
+        const fill = BAR_COLORS[i % BAR_COLORS.length];
+        return `
+          <div class="usage-row">
+            <div class="usage-row-header">
+              <span class="usage-row-name">${escHtml(a.name)}</span>
+              <span class="usage-row-val">${kwh.toFixed(1)} kWh (${pct}%)</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${pct}%;background:${fill}"></div>
+            </div>
+          </div>`;
+      }).join("");
+    document.getElementById("bar-chart").innerHTML = barHtml;
+
+    // Tips
+    renderTips(appliances, totalKwh, sym, rate);
+
+    document.getElementById("results-section").style.display = "block";
+  }
+
+  function renderTips(apps, totalKwh, sym, rate) {
+    const tips = [];
+
+    // Always-on tips
+    tips.push({
+      icon: "🌡️",
+      title: "Adjust thermostat settings",
+      body: "Raising your AC by just 1°C can save up to 6% on cooling costs. Use a programmable thermostat to auto-adjust when you're away.",
+      alert: false
+    });
+    tips.push({
+      icon: "🌙",
+      title: "Use off-peak electricity hours",
+      body: "Many providers offer cheaper rates at night (10 pm–7 am). Run dishwashers, washers and dryers during off-peak hours.",
+      alert: false
+    });
+    tips.push({
+      icon: "🔌",
+      title: "Unplug devices on standby",
+      body: "Standby power ('vampire power') accounts for up to 10% of household electricity. Use smart power strips to eliminate idle draw.",
+      alert: false
+    });
+    tips.push({
+      icon: "💡",
+      title: "Switch to LED lighting",
+      body: "LED bulbs use 75% less energy than incandescent bulbs and last 25× longer. Replace old bulbs for instant savings.",
+      alert: false
+    });
+
+    // Context-aware tips
+    const acApp = apps.find(a => /air.?con|ac\b|hvac/i.test(a.name));
+    if (acApp) {
+      const kwh  = monthlyKWh(acApp.wattage, acApp.hours, acApp.days);
+      const cost = (kwh * rate).toFixed(2);
+      tips.unshift({
+        icon: "❄️",
+        title: "Your AC is your biggest cost",
+        body: `Your air conditioner costs ~${sym}${cost}/month. Clean filters monthly, use ceiling fans to feel cooler, and consider a smart thermostat to cut this by up to 20%.`,
+        alert: true
+      });
+    }
+
+    const heaterApp = apps.find(a => /heat|furnace/i.test(a.name));
+    if (heaterApp) {
+      const kwh  = monthlyKWh(heaterApp.wattage, heaterApp.hours, heaterApp.days);
+      const cost = (kwh * rate).toFixed(2);
+      tips.unshift({
+        icon: "🔥",
+        title: "Heating is energy-intensive",
+        body: `Your heater costs ~${sym}${cost}/month. Ensure windows are properly sealed, add insulation, and wear warm clothes indoors to reduce run time.`,
+        alert: true
+      });
+    }
+
+    const dryerApp = apps.find(a => /dryer/i.test(a.name));
+    if (dryerApp) {
+      tips.push({
+        icon: "👕",
+        title: "Air-dry when possible",
+        body: "Electric dryers are among the most energy-hungry appliances. Air-drying clothes even half the time can cut that cost significantly.",
+        alert: false
+      });
+    }
+
+    if (totalKwh > 600) {
+      tips.unshift({
+        icon: "⚠️",
+        title: "High monthly consumption detected",
+        body: `Your home uses ${totalKwh.toFixed(0)} kWh/month — above the typical household average (~900 kWh). Review the top consumers in the chart above and target reductions there first.`,
+        alert: true
+      });
+    }
+
+    const html = tips.slice(0, 8).map(t => `
+      <div class="${t.alert ? "alert-item" : "tip-item"}">
+        <div class="tip-icon">${t.icon}</div>
+        <div>
+          <div class="tip-title">${t.title}</div>
+          <div class="tip-body">${t.body}</div>
+        </div>
+      </div>`).join("");
+
+    document.getElementById("tips-grid").innerHTML = html;
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  // Re-render when settings change
+  document.getElementById("rate").addEventListener("input", render);
+  document.getElementById("currency").addEventListener("change", render);
+
+  // Allow Enter key to add
+  ["name","wattage","hours","days"].forEach(id => {
+    document.getElementById(id).addEventListener("keydown", e => {
+      if (e.key === "Enter") addAppliance();
+    });
+  });
+</script>
+</body>
+</html>
